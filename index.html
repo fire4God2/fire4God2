@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Web App / PWA Meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0d1117">
+    <title>AI 로또 (Personal)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/mobile.css?v=2">
+    <!-- PWA Settings -->
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./assets/icon-192.png">
+</head>
+
+<body>
+    <!-- Intro Screen -->
+    <div id="intro-screen" class="intro-overlay">
+        <video id="intro-video" src="./아기백호_슛영상.mp4" autoplay muted playsinline></video>
+    </div>
+
+    <div class="app-wrap">
+        <!-- Top Bar -->
+        <header class="top-nav">
+            <h1 style="display: flex; align-items: center; justify-content: center; gap: 8px;"><img
+                    src="./assets/divine_fire_logo.png" style="height: 1.5rem; border-radius: 4px;"> 로또 <span
+                    class="badge">AI</span></h1>
+        </header>
+
+        <!-- Main Display (Balls) -->
+        <main class="display-board">
+            <div id="balls-display" class="balls-container">
+                <div class="empty-text">설정을 마치고 행운의 번호를 생성하세요 👽</div>
+            </div>
+            <div id="loading-spinner" class="spinner" style="display: none;"></div>
+            <p id="generation-info" class="hint-text"></p>
+            <p class="disclaimer-text"
+                style="font-size: 0.75rem; color: #8892b0; text-align: center; margin-top: 8px; font-weight: 400;">
+                ※ 추천번호는 당첨을 보장하지 않습니다.<br>
+                ※ 로또는 소액으로 재미를 위해서만 구매하세요.
+            </p>
+        </main>
+
+        <!-- Filter Config Panel -->
+        <section class="filter-panel glass" id="filter-section">
+            <div class="panel-header" id="btn-toggle-filters">
+                <h2>필터 조정 컨트롤</h2>
+                <span class="chevron">▼</span>
+            </div>
+
+            <div class="filter-body" id="filter-body">
+                <!-- Sum Range -->
+                <div class="setting-group">
+                    <label>번호 총합 구간 (<span id="sum-val-display">100 ~ 170</span>)</label>
+                    <div class="dual-slider">
+                        <input type="range" id="sum-min" min="21" max="150" value="100">
+                        <input type="range" id="sum-max" min="100" max="255" value="170">
+                    </div>
+                </div>
+
+                <!-- Odd/Even Ratio -->
+                <div class="setting-group">
+                    <label>홀짝 비율 우선순위</label>
+                    <select id="odd-even-select">
+                        <option value="both">상관없음</option>
+                        <option value="3:3" selected>3:3 (홀3 짝3)</option>
+                        <option value="2:4">2:4 (홀2 짝4)</option>
+                        <option value="4:2">4:2 (홀4 짝2)</option>
+                    </select>
+                </div>
+
+                <!-- High/Low Ratio -->
+                <div class="setting-group">
+                    <label>고저 비율 (1~22 : 23~45)</label>
+                    <select id="high-low-select">
+                        <option value="both">상관없음</option>
+                        <option value="3:3" selected>3:3 (저3 고3)</option>
+                        <option value="2:4">2:4 (저2 고4)</option>
+                        <option value="4:2">4:2 (저4 고2)</option>
+                    </select>
+                </div>
+
+                <!-- Zero Zone & Gap -->
+                <div class="setting-group compact">
+                    <div class="half-input">
+                        <label>전멸 구간 지정</label>
+                        <select id="zero-zone-select">
+                            <option value="0">사용안함</option>
+                            <option value="1" selected>1개 구간 전멸</option>
+                        </select>
+                    </div>
+                    <div class="half-input">
+                        <label>최대-최소 간격(Gap)</label>
+                        <select id="gap-select">
+                            <option value="0">제한 없음</option>
+                            <option value="20-38" selected>20~38 (권장)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Prime & Multiples of 3 -->
+                <div class="setting-group compact">
+                    <div class="half-input">
+                        <label>소수(Prime) 포함</label>
+                        <select id="prime-select">
+                            <option value="0">제한 없음</option>
+                            <option value="1-3" selected>1~3개 (권장)</option>
+                        </select>
+                    </div>
+                    <div class="half-input">
+                        <label>3의 배수 포함</label>
+                        <select id="multiple3-select">
+                            <option value="0">제한 없음</option>
+                            <option value="1-3" selected>1~3개 (권장)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Advanced Filters -->
+                <div class="setting-group">
+                    <label>산술적 복합성 (AC값 최소 허용치)</label>
+                    <select id="ac-value-select">
+                        <option value="7" selected>7 이상 (권장)</option>
+                        <option value="8">8 이상 (매우 불규칙적)</option>
+                        <option value="0">제한 없음</option>
+                    </select>
+                </div>
+
+                <div class="setting-group compact">
+                    <div class="half-input">
+                        <label>최대 연속 가능</label>
+                        <select id="consecutive-select">
+                            <option value="2" selected>2개 (권장)</option>
+                            <option value="3">3개</option>
+                            <option value="6">제한 없음</option>
+                        </select>
+                    </div>
+                    <div class="half-input">
+                        <label>동일 색상 최대</label>
+                        <select id="color-limit-select">
+                            <option value="3" selected>3개 (권장)</option>
+                            <option value="4">4개</option>
+                            <option value="6">제한 없음</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 직전회차 연계 패턴 -->
+                <div class="setting-group compact">
+                    <div class="half-input">
+                        <label>이월수 (직전 당첨 번호)</label>
+                        <select id="carry-over-select">
+                            <option value="0" selected>사용안함</option>
+                            <option value="1">1~2개 필수 포함</option>
+                        </select>
+                    </div>
+                    <div class="half-input">
+                        <label>이웃수 (직전 번호 ±1)</label>
+                        <select id="neighbor-select">
+                            <option value="0" selected>사용안함</option>
+                            <option value="1">1~2개 필수 포함</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Pattern & 60-Gapja Filter -->
+                <div class="setting-group">
+                    <label>패턴 일수별 60갑자 행운번호 포함</label>
+                    <select id="pattern-gapja-select">
+                        <option value="0" selected>사용안함</option>
+                        <option value="1">1개 자동 포함</option>
+                    </select>
+                </div>
+
+                <!-- Includes / Excludes text inputs -->
+                <div class="setting-group compact">
+                    <div class="half-input">
+                        <label>포함 번호 (콤마 구분)</label>
+                        <input type="text" id="include-numbers" placeholder="예: 7, 13">
+                    </div>
+                    <div class="half-input">
+                        <label>제외 번호 (콤마 구분)</label>
+                        <input type="text" id="exclude-numbers" placeholder="예: 2, 44">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bottom Actions -->
+        <footer class="bottom-actions glass">
+            <button id="btn-past-record" class="btn btn-tertiary"
+                style="margin-bottom:0.5rem; background: rgba(255, 255, 255, 0.1); color: var(--accent);">
+                <span class="icon">📜</span> 과거 당첨 번호 조회
+            </button>
+            <button id="btn-qr-scan" class="btn btn-tertiary"
+                style="margin-bottom:0.5rem; background: rgba(255, 255, 255, 0.1); color: var(--accent);">
+                <span class="icon">�</span> 당첨 번호 스캔 (QR)
+            </button>
+            <button id="btn-generate-local" class="btn btn-secondary">
+                <span class="icon">�</span> 스마트 필터 생성
+            </button>
+            <button id="btn-generate-ai" class="btn btn-primary glow">
+                <span class="icon">🛸</span> AI 추천 (Google)
+            </button>
+            <button id="btn-save-current" class="btn btn-tertiary"
+                style="margin-top:0.5rem; background: rgba(88, 166, 255, 0.2); border: 1px solid var(--accent); color: white;"
+                disabled>
+                <span class="icon">🌟</span> 행운의 번호 장부에 보관
+            </button>
+        </footer>
+
+        <!-- Saved Numbers Panel -->
+        <section class="saved-section glass" style="margin: 1rem;">
+            <div class="panel-header">
+                <h2>🌟 나의 행운 보관함 <span id="saved-count-badge" class="badge">0</span></h2>
+            </div>
+            <div class="saved-body" id="saved-list">
+                <p class="empty-text" style="text-align:center;">아직 보관된 행운의 번호가 없습니다 🐾</p>
+            </div>
+        </section>
+    </div>
+
+
+
+    <!-- Past Record Modal -->
+    <div id="past-record-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content glass" style="align-items: center; padding: 1rem;">
+            <h3 style="margin-bottom: 0;">📜 과거 당첨 번호 조회</h3>
+            <p class="help-text" style="text-align:center; margin-bottom:1rem;">확인하고 싶은 회차를 목록에서 선택하여 조회하세요. (기본 최신 5회차)
+            </p>
+
+            <div class="setting-group compact" style="width: 100%; display: flex; gap: 8px;">
+                <select id="past-drw-no" style="flex: 1; min-width: 0;">
+                    <option value="">최신 회차부터</option>
+                </select>
+                <button id="btn-fetch-past" class="btn btn-primary"
+                    style="width: auto; padding: 0 1rem; flex-shrink: 0;">조회</button>
+            </div>
+
+            <div id="past-record-result"
+                style="width: 100%; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <p class="empty-text">회차를 입력하고 조회 버튼을 누르세요.</p>
+            </div>
+
+            <div class="modal-actions" style="width: 100%; margin-top: 1rem;">
+                <button id="btn-close-past-record" class="btn btn-secondary text-only">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div id="qr-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content glass" style="align-items: center; padding: 1rem;">
+            <h3 style="margin-bottom: 0;">� QR 당첨 확인</h3>
+            <p class="help-text" style="text-align:center; margin-bottom:0.5rem;">로또 영수증 상단의 QR코드를 비춰주세요.</p>
+
+            <div id="qr-reader"
+                style="position: relative; width: 100%; border-radius: 8px; overflow: hidden; background: #111; display:flex; justify-content:center; align-items:center; min-height: 250px;">
+                <video id="qr-video" playsinline style="width: 100%; height: auto; display: none;"></video>
+                <div id="qr-loading" class="spinner"></div>
+                <!-- Scanning Guideline Overlay -->
+                <div id="qr-guide"
+                    style="display:none; position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); width: 200px; height: 200px; border: 2px solid rgba(88,166,255,0.7); box-shadow: 0 0 0 4000px rgba(0,0,0,0.5); pointer-events: none;">
+                </div>
+            </div>
+
+            <canvas id="qr-canvas" style="display:none;"></canvas>
+
+            <div class="modal-actions" style="width: 100%; margin-top: 1rem;">
+                <button id="btn-close-qr" class="btn btn-secondary text-only">스캐너 닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- jsQR Library -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script type="module" src="./js/logic.js?v=2"></script>
+    <script>
+        // PWA Service Worker Registration & Auto-Update
+        let refreshing = false;
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    console.log('Service Worker 등록 성공:', reg.scope);
+
+                    // 새 버전이 발견되어 설치될 때
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // 새로운 워커가 대기 중이면 강제로 skipWaiting을 요청하여 업데이트 리로드
+                                console.log('새로운 버전의 앱이 발견되었습니다. 자동 업데이트 중...');
+                                if (newWorker.postMessage) {
+                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                }
+                            }
+                        });
+                    });
+                }).catch(err => {
+                    console.log('Service Worker 등록 실패:', err);
+                });
+
+                // 새로운 서비스 워커가 제어권을 획득했을 때 페이지 리로드
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (!refreshing) {
+                        refreshing = true;
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+
+</html>

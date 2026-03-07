@@ -1,0 +1,32 @@
+name: Update Latest Lotto Numbers
+
+on:
+  schedule:
+    # 한국 시간(KST) 기준 발표 당일(토요일) 자정(24:00)은 UTC 기준 토요일 오후 3시(15:00)입니다.
+    - cron: '0 15 * * 6'
+  workflow_dispatch: # 수동으로도 실행 가능하도록 설정
+
+jobs:
+  update-lotto:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run lotto fetch script
+        run: node fetch_lotto.js
+
+      - name: Commit and Push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add latest_lotto.json
+          
+          # 변경사항이 있을 경우에만 커밋 및 푸시하도록 Race 상태 조건 방지
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: 로또 최신 당첨 번호 자동 업데이트" && git push)
