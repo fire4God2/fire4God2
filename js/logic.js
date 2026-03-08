@@ -280,27 +280,43 @@ async function fetchLatestLottoNumbers() {
     }
 
     let isModified = false;
-    for (let targetNo = baseDrwNo + 1; targetNo <= currentMaxDrwNo; targetNo++) {
+    // 실시간 프록시로 누락분 보충 시도 (실패해도 로컬 DB로 폴백)
+    if (baseDrwNo < currentMaxDrwNo) {
         try {
-            const response = await fetch(`/api/getData?drwNo=${targetNo}`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.returnValue === "success") {
+            const testResponse = await fetch(`/api/getData?drwNo=${baseDrwNo + 1}`);
+            if (testResponse.ok) {
+                const testData = await testResponse.json();
+                if (testData.returnValue === "success") {
                     lottoDb.push({
-                        drwNo: data.drwNo,
-                        date: data.drwNoDate,
-                        nums: [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6],
-                        bonus: data.bnusNo
+                        drwNo: testData.drwNo,
+                        date: testData.drwNoDate,
+                        nums: [testData.drwtNo1, testData.drwtNo2, testData.drwtNo3, testData.drwtNo4, testData.drwtNo5, testData.drwtNo6],
+                        bonus: testData.bnusNo
                     });
                     isModified = true;
-                } else {
-                    currentMaxDrwNo = targetNo - 1; // Stop fetching further if not available
-                    break;
+
+                    // 첫 번째 성공했으면 나머지도 시도
+                    for (let targetNo = baseDrwNo + 2; targetNo <= currentMaxDrwNo; targetNo++) {
+                        try {
+                            const response = await fetch(`/api/getData?drwNo=${targetNo}`);
+                            if (response.ok) {
+                                const data = await response.json();
+                                if (data.returnValue === "success") {
+                                    lottoDb.push({
+                                        drwNo: data.drwNo,
+                                        date: data.drwNoDate,
+                                        nums: [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6],
+                                        bonus: data.bnusNo
+                                    });
+                                    isModified = true;
+                                } else { break; }
+                            } else { break; }
+                        } catch (e) { break; }
+                    }
                 }
             }
         } catch (e) {
-            console.error(`Failed to fetch drwNo ${targetNo}`, e);
-            break;
+            console.warn('실시간 데이터 동기화 실패 — 로컬 DB를 사용합니다.', e.message);
         }
     }
 
@@ -705,7 +721,7 @@ if (btnPastRecord && pastModal) {
         for (let i = targetDrwNo; i >= endNo; i--) {
             let record = lottoDb.find(r => r.drwNo === i);
 
-            // Generate HTML for the record if found, else attempt fetch (though unlikely if synced)
+            // Generate HTML for the record if found, else attempt fetch
             if (!record) {
                 try {
                     const response = await fetch(`/api/getData?drwNo=${i}`);
@@ -718,11 +734,10 @@ if (btnPastRecord && pastModal) {
                                 nums: [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6],
                                 bonus: data.bnusNo
                             };
-                            // Optional: save back to lottoDb if needed
                         }
                     }
                 } catch (e) {
-                    console.error('Fetch error for past draw ' + i, e);
+                    console.warn(`과거 회차 ${i} 조회 실패 — 로컬 DB에 없는 회차입니다.`);
                 }
             }
 

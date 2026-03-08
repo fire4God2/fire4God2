@@ -3,22 +3,15 @@ const https = require('https');
 const path = require('path');
 
 function getLatestDrawNo() {
-  // 1회차 추첨일 (2002년 12월 7일 오후 8시 45분 KST 기준)
   const firstDrawDate = new Date('2002-12-07T20:45:00+09:00');
   const now = new Date();
-  
-  // 밀리초 단위 차이 계산 후 일(day) 단위로 변환
   const diffTime = now.getTime() - firstDrawDate.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  // 7일마다 1회차씩 증가
-  return Math.floor(diffDays / 7) + 1;
+  return Math.floor(diffTime / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 
 function fetchLottoData(drawNo) {
   return new Promise((resolve, reject) => {
     const url = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drawNo}`;
-    
     https.get(url, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
@@ -26,7 +19,7 @@ function fetchLottoData(drawNo) {
         try {
           resolve(JSON.parse(data));
         } catch (e) {
-          reject(e);
+          reject(new Error(`Parse error for drwNo ${drawNo}: ${data.substring(0, 200)}`));
         }
       });
     }).on('error', reject);
@@ -35,21 +28,54 @@ function fetchLottoData(drawNo) {
 
 async function main() {
   try {
+    const dbPath = path.join(__dirname, 'js', 'lotto-db.json');
+    let db = [];
+
+    if (fs.existsSync(dbPath)) {
+      db = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
+    }
+
+    const lastDrwNo = db.length > 0 ? db[db.length - 1].drwNo : 0;
     const latestDrawNo = getLatestDrawNo();
-    console.log(`[INFO] 계산된 최신 회차: ${latestDrawNo}회`);
-    
-    const data = await fetchLottoData(latestDrawNo);
-    
-    if (data.returnValue === 'success') {
-      const filePath = path.join(__dirname, 'latest_lotto.json');
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-      console.log(`[SUCCESS] ${latestDrawNo}회차 데이터를 latest_lotto.json에 저장했습니다.`);
+    console.log(`[INFO] DB 마지막: ${lastDrwNo}회, 최신 예상: ${latestDrawNo}회`);
+
+    if (lastDrwNo >= latestDrawNo) {
+      console.log('[INFO] 이미 최신 상태입니다.');
+      return;
+    }
+
+    let newCount = 0;
+    for (let no = lastDrwNo + 1; no <= latestDrawNo; no++) {
+      try {
+        const data = await fetchLottoData(no);
+        if (data.returnValue === 'success') {
+          db.push({
+            drwNo: data.drwNo,
+            date: data.drwNoDate,
+            nums: [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6],
+            bonus: data.bnusNo
+          });
+          newCount++;
+          console.log(`  [+] ${data.drwNo}회 추가`);
+        } else {
+          console.log(`  [SKIP] ${no}회 아직 미확정`);
+          break;
+        }
+      } catch (e) {
+        console.error(`  [ERROR] ${no}회 fetch 실패:`, e.message);
+        break;
+      }
+    }
+
+    if (newCount > 0) {
+      db.sort((a, b) => a.drwNo - b.drwNo);
+      fs.writeFileSync(dbPath, JSON.stringify(db), 'utf-8');
+      console.log(`[SUCCESS] ${newCount}건 추가 완료 (총 ${db.length}건). lotto-db.json 업데이트됨.`);
     } else {
-      console.error('[ERROR] 데이터를 불러오지 못했습니다. (아직 추첨 전일 수 있습니다)', data);
-      process.exit(1);
+      console.log('[INFO] 새로 추가할 데이터가 없습니다.');
     }
   } catch (error) {
-    console.error('[ERROR] 스크립트 실행 중 문제가 발생했습니다:', error);
+    console.error('[ERROR] 스크립트 실행 중 문제:', error);
     process.exit(1);
   }
 }
