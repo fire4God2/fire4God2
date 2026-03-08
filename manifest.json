@@ -1,0 +1,21 @@
+{
+  "name": "AI 로또 발생기 PRO",
+  "short_name": "AI 로또",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "description": "구글 AI Gemini 기반 나만의 모바일 로또 번호 필터링 추천 앱",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

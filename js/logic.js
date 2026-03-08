@@ -282,7 +282,7 @@ async function fetchLatestLottoNumbers() {
     let isModified = false;
     for (let targetNo = baseDrwNo + 1; targetNo <= currentMaxDrwNo; targetNo++) {
         try {
-            const response = await fetch(`/.netlify/functions/getData?drwNo=${targetNo}`);
+            const response = await fetch(`/api/getData?drwNo=${targetNo}`);
             if (response.ok) {
                 const data = await response.json();
                 if (data.returnValue === "success") {
@@ -507,7 +507,7 @@ async function generateAiNumbers() {
 10. 번호 대역 별 최대출현: ${currentSettings.maxSameColor}개${contextStr}`;
 
     try {
-        const url = `/.netlify/functions/getAiLotto`;
+        const url = `/api/getAiLotto`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -708,7 +708,7 @@ if (btnPastRecord && pastModal) {
             // Generate HTML for the record if found, else attempt fetch (though unlikely if synced)
             if (!record) {
                 try {
-                    const response = await fetch(`/.netlify/functions/getData?drwNo=${i}`);
+                    const response = await fetch(`/api/getData?drwNo=${i}`);
                     if (response.ok) {
                         const data = await response.json();
                         if (data.returnValue === "success") {

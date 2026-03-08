@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>로또 AI - PC UI 샌드박스</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background-color: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: white;
+        }
+
+        .sandbox-header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .sandbox-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            color: #58a6ff;
+        }
+
+        .sandbox-header p {
+            margin: 0;
+            font-size: 14px;
+            color: #8b949e;
+        }
+
+        .device-container {
+            display: flex;
+            gap: 40px;
+            align-items: flex-start;
+        }
+
+        .device-mockup {
+            /* iPhone 13 Pro Max dimensions */
+            width: 428px;
+            height: 926px;
+            background: #0d1117;
+            border-radius: 40px;
+            box-shadow: 0 0 0 14px #090a0f, 0 0 0 16px #4a4a4a, 0 30px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            transform: scale(0.85);
+            transform-origin: top center;
+            transition: all 0.3s ease;
+        }
+
+        .device-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 160px;
+            height: 30px;
+            background: #090a0f;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            z-index: 100;
+        }
+
+        .device-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: #0d1117;
+        }
+
+        /* PC Info Panel */
+        .info-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .info-panel h2 {
+            margin: 0;
+            font-size: 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
+        }
+
+        .control-btn {
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: 600;
+        }
+
+        .control-btn:hover {
+            background: #2ea043;
+        }
+
+        .control-btn.secondary {
+            background: #21262d;
+            border: 1px solid rgba(240, 246, 252, 0.1);
+        }
+
+        .control-btn.secondary:hover {
+            background: #30363d;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sandbox-header">
+        <h1>로또 AI - PC 시뮬레이터</h1>
+        <p>데스크탑 환경에서 모바일 앱(PWA) UI 및 동작을 프레임 테스트로 확인하는 샌드박스입니다.</p>
+    </div>
+
+    <div class="device-container">
+        <!-- 모바일 디바이스 목업 영역 -->
+        <div class="device-mockup">
+            <div class="device-notch"></div>
+            <iframe id="app-frame" class="device-iframe" src="./index.html"></iframe>
+        </div>
+
+        <!-- 샌드박스 컨트롤 패널 -->
+        <div class="info-panel">
+            <h2>테스트 도구</h2>
+            <button class="control-btn" onclick="reloadApp()">앱 새로고침</button>
+            <button class="control-btn secondary" onclick="openDevTools()">새 탭에서 열기 (DevTools용)</button>
+
+            <div style="margin-top: 20px;">
+                <h2 style="font-size: 14px; border:none; padding-bottom:0;">화면 해상도</h2>
+                <select id="device-selector"
+                    style="width: 100%; padding: 8px; margin-top: 8px; background: #0d1117; color: white; border: 1px solid #30363d; border-radius: 6px;"
+                    onchange="changeDeviceResolution()">
+                    <option value="428x926" selected>iPhone 13 Pro Max (428x926)</option>
+                    <option value="390x844">iPhone 13 Pro (390x844)</option>
+                    <option value="360x800">Galaxy S22 (360x800)</option>
+                    <option value="412x915">Galaxy S22 Ultra (412x915)</option>
+                </select>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <p style="font-size: 12px; color: #8b949e; line-height: 1.5;">
+                    💡 <strong>테스트 가이드</strong><br>
+                    - 로컬 환경(file://) 대신 로컬 서버(localhost)를 통해 접속해야 내부 Service Worker(sw.js) 및 기능이 정상 동작합니다.<br>
+                    - 앱 내 버튼 클릭 이벤트, 스크롤 동작, UI 레이아웃의 정상 작동 여부를 시뮬레이션으로 테스트합니다.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function reloadApp() {
+            document.getElementById('app-frame').contentWindow.location.reload(true);
+        }
+        function openDevTools() {
+            window.open('./index.html', '_blank');
+        }
+        function changeDeviceResolution() {
+            const selector = document.getElementById('device-selector');
+            const [width, height] = selector.value.split('x');
+            const mockup = document.querySelector('.device-mockup');
+
+            mockup.style.width = width + 'px';
+            mockup.style.height = height + 'px';
+        }
+    </script>
+</body>
+
+</html>
