@@ -1,6 +1,15 @@
 // Vercel Serverless Function: /api/getAiLotto
 // Gemini API 프록시 (API 키 보호)
 export default async function handler(req, res) {
+    // CORS 헤더
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
@@ -9,7 +18,10 @@ export default async function handler(req, res) {
     const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.MY_SECRET_API_KEY;
 
     if (!apiKey) {
-        return res.status(500).json({ error: 'Server API Key is not configured.' });
+        return res.status(500).json({
+            error: 'Server API Key is not configured.',
+            hint: 'Vercel Dashboard > Settings > Environment Variables에서 GEMINI_API_KEY를 설정하세요.'
+        });
     }
 
     try {
@@ -33,7 +45,11 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             const errBody = await response.text();
-            throw new Error(`Gemini API Error: ${response.status} - ${errBody}`);
+            return res.status(502).json({
+                error: 'Gemini API Error',
+                status: response.status,
+                details: errBody
+            });
         }
 
         const data = await response.json();
@@ -41,6 +57,9 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ result: aiTextData });
     } catch (error) {
-        return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+        return res.status(500).json({
+            error: 'Internal Server Error',
+            details: error.message
+        });
     }
 }
